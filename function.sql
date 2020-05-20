@@ -1,18 +1,29 @@
-CREATE OR REPLACE FUNCTION SelectFilm (
-    p_budget films_review.budget%type,
-    p_genre films_review.genre%type
+--Function return Film name and Company with defined genre and budget--
+--Firstly run this block--
+CREATE TYPE film_row AS OBJECT (
+    film_name_p VARCHAR2(50),
+    film_company_p VARCHAR2(50)
 )
-RETURN VARCHAR2
-IS 
-v_film VARCHAR2(50);
+
+--After that run this block--
+CREATE TYPE film_list_type IS TABLE OF film_row
+
+--Generate function--
+CREATE OR REPLACE FUNCTION GetFilmList (
+    film_genre films_review.genre%type,
+    film_budget films_review.budget%type
+) RETURN film_list_type
+AS
+    result_films film_list_type := film_list_type();
 BEGIN
-    SELECT film INTO v_film
-    FROM films_review
-    WHERE budget > p_budget AND genre = p_genre;
-    RETURN v_film;   
-EXCEPTION
-    WHEN NO_DATA_FOUND 
-    THEN DBMS_OUTPUT.PUT_LINE('Film with this budget or genre not found!');
-    v_film := 'Function finished';
-    RETURN v_film;
+    for cursor IN (
+                    SELECT film, company
+                    FROM films_review
+                    WHERE budget > film_budget AND genre = film_genre
+                )
+    LOOP
+        result_films.extend;
+        result_films(result_films.last) := film_row(cursor.film, cursor.company);              
+    END LOOP;
+    RETURN result_films;
 END;
